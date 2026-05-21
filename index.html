@@ -3,7 +3,7 @@
    <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-      <title>GΞNΞSIS ΛNΛLYZΞR V9 💎</title>
+      <title>GΞNΞSIS ΛNΛLYZΞR V8 💎</title>
       <script src="https://cdn.tailwindcss.com"></script>
       <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -25,7 +25,7 @@
          <div class="text-center py-6">
             <h1 class="text-3xl font-black tracking-tighter" style="font-family: 'Orbitron', sans-serif;">
                <span class="text-white">GΞNΞSIS</span>
-               <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-yellow-500">ΛNΛLYZΞR V9 💎</span>
+               <span class="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-yellow-500">ΛNΛLYZΞR V8 💎</span>
             </h1>
          </div>
 
@@ -46,7 +46,7 @@
 
          <div class="prediction-box p-6 text-center">
             <div class="flex justify-between items-start mb-4">
-               <span class="text-[10px] bg-pink-600 text-white px-2 py-1 rounded font-bold tracking-widest">V9 PREMIUM ACTIVE</span>
+               <span class="text-[10px] bg-pink-600 text-white px-2 py-1 rounded font-bold tracking-widest">V8 ACTIVE</span>
                <div class="text-right">
                   <div class="text-[9px] text-gray-400 uppercase">Next Period</div>
                   <div id="current-period" class="text-lg font-bold text-white tracking-widest">----</div>
@@ -60,12 +60,12 @@
             <div class="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
                <div id="confidence-bar" class="h-full bg-pink-500 transition-all duration-1000" style="width: 0%"></div>
             </div>
-            <div class="text-[10px] text-gray-500 mt-2">Neural Weight: <span id="confidence-text">0/70</span></div>
+            <div class="text-[10px] text-gray-500 mt-2">Neural Analysis: <span id="confidence-text">0%</span></div>
          </div>
 
          <div class="premium-frame flex-grow flex flex-col overflow-hidden">
             <div class="p-4 border-b border-white/5 flex justify-between items-center bg-white/5">
-               <h2 class="text-xs font-bold uppercase tracking-widest text-pink-500">V9 Neural History</h2>
+               <h2 class="text-xs font-bold uppercase tracking-widest text-pink-500">Neural History Log</h2>
                <button onclick="clearHistory()" class="text-[10px] text-red-400 uppercase font-bold">Clear</button>
             </div>
             <div id="history-list" class="history-list-scroll divide-y divide-white/5"></div>
@@ -74,8 +74,7 @@
 
       <script>
          const API_URL = "https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json";
-         // Data storage shifted to V9 key
-         let historyDB = JSON.parse(localStorage.getItem('genesis_v9_db')) || [];
+         let historyDB = JSON.parse(localStorage.getItem('genesis_v8_db')) || [];
          let lastProcessed = null;
          
          let ai4Mode = "TREND"; 
@@ -107,7 +106,7 @@
                   }
                });
                if (historyDB.length > 50) historyDB = historyDB.slice(0, 50);
-               localStorage.setItem('genesis_v9_db', JSON.stringify(historyDB));
+               localStorage.setItem('genesis_v8_db', JSON.stringify(historyDB));
                renderHistory();
                runCalculatorAI(list);
                lastProcessed = list[0].issueNumber;
@@ -127,10 +126,26 @@
             } catch (e) {}
          }
 
-         function getRandomNumbers(verdict) {
+         function getSmartNumbers(list, verdict) {
+            const last10 = list.slice(0, 10).map(x => parseInt(x.number));
             const range = verdict === 'BIG' ? [5, 6, 7, 8, 9] : [0, 1, 2, 3, 4];
-            let shuffled = range.sort(() => 0.5 - Math.random());
-            return [shuffled[0], shuffled[1]];
+            
+            const counts = {};
+            range.forEach(n => counts[n] = 0);
+            last10.forEach(n => { if(range.includes(n)) counts[n]++; });
+
+            const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+            
+            let high = parseInt(sorted[0]); 
+            let low = parseInt(sorted[sorted.length - 1]); 
+
+            if (isNaN(high)) high = range[Math.floor(Math.random() * range.length)];
+            if (isNaN(low) || low === high) {
+               const remaining = range.filter(n => n !== high);
+               low = remaining[Math.floor(Math.random() * remaining.length)];
+            }
+
+            return [high, low];
          }
 
          function runCalculatorAI(list) {
@@ -141,47 +156,41 @@
             const nextP = (BigInt(list[0].issueNumber) + 1n).toString();
             const results = rawData.map(x => x.size);
 
-            // AI 1 - 20% Weight
+            // AI 1 - 40% Weight
             let ai1Vote = results[0]; 
             if (results[0] === results[1]) ai1Vote = results[0]; 
             else if (results[0] !== results[1] && results[1] !== results[2]) ai1Vote = results[0] === 'BIG' ? 'SMALL' : 'BIG'; 
+            if (results[0] === results[1] && results[2] === results[3] && results[0] !== results[2]) ai1Vote = results[0] === 'BIG' ? 'SMALL' : 'BIG';
 
-            // AI 4 - 30% Weight (10 PERIOD SCAN)
-            const scanArea = rawData.slice(0, 10);
+            // AI 3 - 20% Weight
+            const ai3Vote = (rawData.slice(0, 5).filter(x => x.size === 'SMALL').length >= 3) ? "SMALL" : "BIG";
+
+            // AI 4 - 40% Weight
+            const scanArea = rawData.slice(0, 20);
             const bigs = scanArea.filter(x => x.size === 'BIG').length;
             const smalls = scanArea.filter(x => x.size === 'SMALL').length;
             const majority = bigs >= smalls ? "BIG" : "SMALL";
             const minority = majority === "BIG" ? "SMALL" : "BIG";
             let ai4Vote = (ai4Mode === "TREND") ? majority : minority;
 
-            // AI 5 - 20% Weight (PERIOD LAST DIGIT LOGIC)
-            const lastDigit = parseInt(nextP.slice(-1));
-            const ai5Map = {
-               0: "BIG", 1: "SMALL", 2: "BIG", 3: "BIG", 4: "SMALL",
-               5: "SMALL", 6: "SMALL", 7: "BIG", 8: "BIG", 9: "SMALL"
-            };
-            const ai5Vote = ai5Map[lastDigit];
-
-            // V9 Final Weight Calculation (Total 70 Points)
-            let sPoints = (ai1Vote === 'SMALL' ? 20 : 0) + (ai4Vote === 'SMALL' ? 30 : 0) + (ai5Vote === 'SMALL' ? 20 : 0);
-            let bPoints = (ai1Vote === 'BIG' ? 20 : 0) + (ai4Vote === 'BIG' ? 30 : 0) + (ai5Vote === 'BIG' ? 20 : 0);
+            // Final Points Calculation (AI 2 Removed)
+            let sPoints = (ai1Vote === 'SMALL' ? 40 : 0) + (ai3Vote === 'SMALL' ? 20 : 0) + (ai4Vote === 'SMALL' ? 40 : 0);
+            let bPoints = (ai1Vote === 'BIG' ? 40 : 0) + (ai3Vote === 'BIG' ? 20 : 0) + (ai4Vote === 'BIG' ? 40 : 0);
 
             const verdict = sPoints > bPoints ? "SMALL" : "BIG";
-            const finalNums = getRandomNumbers(verdict);
-            const winnerPoints = Math.max(sPoints, bPoints);
+            const finalNums = getSmartNumbers(list, verdict);
 
-            updateUI(nextP, verdict, finalNums, winnerPoints);
+            updateUI(nextP, verdict, finalNums, Math.max(sPoints, bPoints));
             saveLog(nextP, verdict, finalNums, ai4Vote);
          }
 
-         function updateUI(p, res, nums, points) {
+         function updateUI(p, res, nums, conf) {
             document.getElementById('current-period').textContent = p.slice(-4);
             const resEl = document.getElementById('prediction-result');
             resEl.textContent = res;
             resEl.className = `text-5xl font-black italic mb-2 ${res === 'BIG' ? 'text-yellow-400' : 'text-pink-500'}`;
-            const barWidth = (points / 70) * 100;
-            document.getElementById('confidence-bar').style.width = barWidth + '%';
-            document.getElementById('confidence-text').textContent = points + '/70';
+            document.getElementById('confidence-bar').style.width = conf + '%';
+            document.getElementById('confidence-text').textContent = conf + '%';
             document.getElementById('ai4-mode-display').textContent = ai4Mode + (ai4CycleStep > 0 ? ` (${ai4CycleStep}/3)` : "");
             document.getElementById('prediction-numbers').innerHTML = nums.map(n => 
                `<span class="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-sm font-bold">${n}</span>`
@@ -222,7 +231,7 @@
             if (!historyDB.find(x => x.period === period)) {
                historyDB.unshift({ period, prediction, numbers, status: 'pending', actualNum: '?', ai4Vote });
                if (historyDB.length > 50) historyDB.pop();
-               localStorage.setItem('genesis_v9_db', JSON.stringify(historyDB));
+               localStorage.setItem('genesis_v8_db', JSON.stringify(historyDB));
                renderHistory();
             }
          }
@@ -253,7 +262,7 @@
 
          function clearHistory() {
             historyDB = [];
-            localStorage.removeItem('genesis_v9_db');
+            localStorage.removeItem('genesis_v8_db');
             ai4Mode = "TREND"; ai4LossStreak = 0; ai4CycleStep = 0;
             fetchAndRecoverData();
          }
